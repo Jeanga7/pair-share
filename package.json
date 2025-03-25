@@ -1,8 +1,9 @@
 {
-  "name": "jeanga7",
+  "name": "pairshare",
   "displayName": "pair-share",
   "description": "Une extension VSCode qui permet de partager instantanément des extraits de code et messages entre développeurs sur le même réseau local.",
   "version": "0.0.1",
+  "publisher": "jeanga7",
   "engines": {
     "vscode": "^1.98.0"
   },
@@ -14,8 +15,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "pairshare.sendMessage",
-        "title": "Send Message",
+        "command": "extension.showUsers",
+        "title": "Show Users",
         "category": "PairShare"
       }
     ]
