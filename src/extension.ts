@@ -1,26 +1,83 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
+import WebSocket from "ws";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+// État de la connexion WebSocket
+let ws: WebSocket | null = null;
+let isConnected = false;
+
+// Cette méthode est appelée quand l'extension est activée
 export function activate(context: vscode.ExtensionContext) {
+  vscode.window.showInformationMessage("PairShare Connected!");
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "jeanga7" is now active!');
+  // Créer une nouvelle instance de WebSocket
+  ws = new WebSocket("ws://localhost:8080");
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('jeanga7.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from pair-share!');
-	});
+  ws.on("open", () => {
+    isConnected = true; // Connexion réussie
+    vscode.window.showInformationMessage("✅ Connecté au serveur WebSocket");
 
-	context.subscriptions.push(disposable);
+    // Envoyer un message dès la connexion
+    if (ws) {
+      ws.send(
+        JSON.stringify({
+          type: "login",
+          message: "Un utilisateur a rejoint le réseau",
+        })
+      );
+    }
+  });
+
+  ws.on("message", (data) => {
+    try {
+      const message = JSON.parse(data.toString());
+      vscode.window.showInformationMessage(
+        `📩 Message reçu: ${message.message}`
+      );
+    } catch (error) {
+      vscode.window.showErrorMessage(
+        "Erreur lors de la réception du message : données invalides."
+      );
+    }
+  });
+
+  ws.on("close", () => {
+    isConnected = false; // Déconnexion
+    vscode.window.showInformationMessage("❌ Déconnecté du serveur WebSocket");
+  });
+
+  ws.on("error", (error) => {
+    vscode.window.showErrorMessage(
+      `Erreur WebSocket: ${
+        error.message || "Une erreur inconnue s'est produite."
+      }`
+    );
+  });
+
+  // Ajouter une commande VSCode pour envoyer un message
+  let disposable = vscode.commands.registerCommand(
+    "pairshare.sendMessage",
+    () => {
+      if (isConnected && ws?.readyState === WebSocket.OPEN) {
+        ws.send(
+          JSON.stringify({ type: "message", message: "Hello depuis VSCode!" })
+        );
+        vscode.window.showInformationMessage(
+          "✉️ Message envoyé: Hello depuis VSCode!"
+        );
+      } else {
+        vscode.window.showErrorMessage(
+          "🚨 Le serveur WebSocket n'est pas connecté"
+        );
+      }
+    }
+  );
+
+  context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+// Cette méthode est appelée quand l'extension est désactivée
+export function deactivate() {
+  if (ws) {
+    ws.close();
+  }
+}
